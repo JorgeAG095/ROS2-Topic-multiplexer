@@ -1,0 +1,30 @@
+speed_multiplexer:
+  name: "speed_mux"
+  topics:
+    output:
+      topic: "/cmd_vel"
+    inputs:
+      input_1:
+        topic: "/manual/cmd_vel"
+        priority: 1
+      input_2:
+        topic: "/auto/cmd_vel"
+        priority: 2
+      input_3:
+        topic: "/safety/cmd_vel"
+        priority: 3
+  type: "Twist"
+
+brake_multiplexer:
+  name: "/brake_mux"
+  topics:
+    output:
+      topic: "/cmd_brakes"
+    inputs:
+      input_1:
+        topic: "/manual/cmd_brakes"
+        priority: 1
+      input_2:
+        topic: "/safety/cmd_brakes"
+        priority: 2
+  type: "Float64"
