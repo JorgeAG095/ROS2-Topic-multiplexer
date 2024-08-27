@@ -1,5 +1,8 @@
 speed_multiplexer:
   name: "speed_mux"
+  type: "Twist"
+  frequency_ms: 1000
+  timeout: 0.5
   topics:
     output:
       topic: "/cmd_vel"
@@ -13,10 +16,12 @@ speed_multiplexer:
       input_3:
         topic: "/safety/cmd_vel"
         priority: 3
-  type: "Twist"
 
 brake_multiplexer:
   name: "/brake_mux"
+  type: "Float64"
+  frequency_ms: 100
+  timeout: 0.5
   topics:
     output:
       topic: "/cmd_brakes"
@@ -27,4 +32,3 @@ brake_multiplexer:
       input_2:
         topic: "/safety/cmd_brakes"
         priority: 2
-  type: "Float64"

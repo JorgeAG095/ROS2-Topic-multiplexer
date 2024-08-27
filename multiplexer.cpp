@@ -160,7 +160,6 @@ private:
                 { 
                     output_topic = topic;
                     prev_priority = priority;
-                    //published_topic.emplace_back(topic, priority); 
                 }
             }
             auto it = std::find_if(mux.latest_messages.begin(), mux.latest_messages.end(),
