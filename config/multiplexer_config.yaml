@@ -9,13 +9,13 @@ speed_multiplexer:
     inputs:
       input_1:
         topic: "/manual/cmd_vel"
-        priority: 1
+        priority: 20
       input_2:
         topic: "/auto/cmd_vel"
-        priority: 2
+        priority: 10
       input_3:
         topic: "/safety/cmd_vel"
-        priority: 3
+        priority: 30
 
 brake_multiplexer:
   name: "/brake_mux"
@@ -27,8 +27,11 @@ brake_multiplexer:
       topic: "/cmd_brakes"
     inputs:
       input_1:
-        topic: "/manual/cmd_brakes"
-        priority: 1
+        topic: "/auto/cmd_brakes"
+        priority: 10
       input_2:
+        topic: "/manual/cmd_brakes"
+        priority: 20
+      input_3:
         topic: "/safety/cmd_brakes"
-        priority: 2
+        priority: 30

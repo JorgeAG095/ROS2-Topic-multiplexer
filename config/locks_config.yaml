@@ -1,0 +1,7 @@
+locks:
+  lock_1:
+    topic: "/lock/safety"
+    priority: 29
+  lock_2:
+    topic: "/lock/manual"
+    priority: 19

@@ -5,16 +5,17 @@
 #include <yaml-cpp/yaml.h>
 #include <algorithm>
 #include "rclcpp/rclcpp.hpp"
-#include "std_msgs/msg/string.hpp"
 #include "geometry_msgs/msg/twist.hpp"
+#include "std_msgs/msg/string.hpp"
 #include "std_msgs/msg/float64.hpp"
+#include "std_msgs/msg/bool.hpp"
 
 namespace multiplexer
 {
     class TopicMultiplexer : public rclcpp::Node
     {
     public:
-        // TODO : Use locks for topics
+        // TODO : Use locks for topics (saffety)
         struct multiplexer
         {
             int frequency;
@@ -28,9 +29,16 @@ namespace multiplexer
             rclcpp::PublisherBase::SharedPtr output_publisher;
             rclcpp::TimerBase::SharedPtr timer_;
         };
-        TopicMultiplexer(const std::string &config_path) : Node("topic_multiplexer")
+        struct lock
         {
-            load_config(config_path, multiplexer_list);
+            std::vector<std::pair<std::string, int>> lock_topics;
+            std::vector<std::pair<std::string, std_msgs::msg::Bool>> latest_messages;
+            std::vector<rclcpp::SubscriptionBase::SharedPtr> subscriber_list;
+        };
+        TopicMultiplexer(const std::string& multiplexer_config_path, const std::string& lock_config_path) : Node("topic_multiplexer")
+        {
+            load_config(multiplexer_config_path, lock_config_path, multiplexer_list, lock_list);
+            // Multiplexers
             for (multiplexer& mux : multiplexer_list)
             {
                 // Create subscribers
@@ -83,12 +91,42 @@ namespace multiplexer
                         this->highPriorityPublisher(mux.name);
                     });
             }
+
+            // Locks
+            for (auto it = lock_list.lock_topics.begin(); it != lock_list.lock_topics.end(); it++)
+            {
+                std::string topic = it->first;
+                lock_list.latest_messages.emplace_back(topic, std_msgs::msg::Bool());
+                rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr _subscriber =
+                this->create_subscription<std_msgs::msg::Bool>(
+                    topic, 10,
+                    std::function<void(const std_msgs::msg::Bool::SharedPtr)>(
+                        std::bind(&TopicMultiplexer::LockTopicCallback, this, std::placeholders::_1, topic)
+                    )
+                );
+                lock_list.subscriber_list.emplace_back(_subscriber);
+            }
         }
     private:
         void TwistTopicCallback(const geometry_msgs::msg::Twist::SharedPtr msg, const std::string& topic, const std::string& mux_name);
         void FloatTopicCallback(const std_msgs::msg::Float64::SharedPtr msg, const std::string& topic, const std::string& mux_name);
+        void LockTopicCallback(const std_msgs::msg::Bool::SharedPtr msg, const std::string& topic);
         void highPriorityPublisher(const std::string& mux_name)
         {
+            int lock_priority = 0;
+            for (auto it = lock_list.lock_topics.begin(); it != lock_list.lock_topics.end(); it++)
+            {
+                std::string topic = it->first;
+                int priority = it->second;
+                auto it_2 = std::find_if(lock_list.latest_messages.begin(), lock_list.latest_messages.end(),
+                    [&topic](const std::pair<std::string, std_msgs::msg::Bool>& element){
+                        return element.first == topic;
+                    });
+                if(it_2->second.data)
+                {
+                    if (priority > lock_priority) { lock_priority = priority; }
+                }
+            }
             for (auto& mux : multiplexer_list)
             {
                 if (mux.name == mux_name)
@@ -114,8 +152,11 @@ namespace multiplexer
                         }
                         else if (priority > prev_priority) 
                         { 
-                            output_topic = topic;
-                            prev_priority = priority;
+                            if (priority > lock_priority)
+                            {
+                                output_topic = topic;
+                                prev_priority = priority;
+                            }
                         }
                     }
                     auto it = std::find_if(mux.latest_messages.begin(), mux.latest_messages.end(),
@@ -136,12 +177,16 @@ namespace multiplexer
                 }
             }
         }
-        void load_config(const std::string &config_path, std::vector<multiplexer> &multiplexer_list)
+        void load_config(const std::string& multiplexer_config_path,
+                        const std::string& lock_config_path,
+                        std::vector<multiplexer>& multiplexer_list,
+                        lock& lock_list)
         {
             try
             {
-                YAML::Node config = YAML::LoadFile(config_path);
-                for (YAML::const_iterator it = config.begin(); it != config.end(); it++)
+                // Multiplexers
+                YAML::Node multiplexer_config = YAML::LoadFile(multiplexer_config_path);
+                for (YAML::const_iterator it = multiplexer_config.begin(); it != multiplexer_config.end(); it++)
                 {
                     multiplexer m;
                     m.frequency = it->second["frequency_ms"].as<int>();
@@ -159,7 +204,19 @@ namespace multiplexer
                     }
                     multiplexer_list.emplace_back(m);
                 }
-                
+
+                // Locks
+                YAML::Node lock_config = YAML::LoadFile(lock_config_path);
+                for (YAML::const_iterator it = lock_config.begin(); it != lock_config.end(); it++)
+                {
+                    YAML::Node locks = it->second;
+                    for (YAML::const_iterator it_2 = locks.begin(); it_2 != locks.end(); it_2++)
+                    {
+                        std::string topic = it_2->second["topic"].as<std::string>();
+                        int priority = it_2->second["priority"].as<int>();
+                        lock_list.lock_topics.emplace_back(topic, priority);
+                    }
+                }
             }
             catch(const std::exception& e)
             {
@@ -167,5 +224,6 @@ namespace multiplexer
             }    
         }
         std::vector<multiplexer> multiplexer_list;
+        lock lock_list;
     };
 }
