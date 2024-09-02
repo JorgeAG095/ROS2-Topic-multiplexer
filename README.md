@@ -30,3 +30,12 @@ This acts as a safety mecanism to ensure that the release is voluntary.
 The configuration of the multiplexers is done via YAML file. There are two files:
 - **locks_config.yaml**: Defines the available locks, each associated witha a topic and a priority
 - **multiplexer_config.yaml**: Defines the multiplexers, including their output topic, input topics, priorities, message type and the frequency at which the output is published.
+
+### How to build
+
+```bash
+  mkdir build
+  cd build
+  cmake ..
+  cmake --build .
+```
