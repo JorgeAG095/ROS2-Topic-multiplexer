@@ -43,4 +43,4 @@ This should create a list of topics like this:
 ```bash
   ros2 topic list
 ```
-![alt text](img/topic_list.png)
+![alt text](img/topic_list.PNG)
