@@ -31,11 +31,16 @@ The configuration of the multiplexers is done via YAML file. There are two files
 - **locks_config.yaml**: Defines the available locks, each associated witha a topic and a priority
 - **multiplexer_config.yaml**: Defines the multiplexers, including their output topic, input topics, priorities, message type and the frequency at which the output is published.
 
-### How to build
+### How to build and run the package
 
 ```bash
-  mkdir build
-  cd build
-  cmake ..
-  cmake --build .
+  cd ros2_workspace/
+  colcon build --packages-select multiplexer_node
+  source install/setup.bash
+  ros2 run multiplexer_node multiplexer_node
 ```
+This should create a list of topics like this:
+```bash
+  ros2 topic list
+```
+![alt text](img/topic_list.png)
